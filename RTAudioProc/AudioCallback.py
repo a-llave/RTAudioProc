@@ -3,6 +3,10 @@ import numpy as np
 
 class AudioCallback:
     def __init__(self, sig_m, nb_buffsamp):
+        if len(sig_m.shape) == 1:
+            sig_m = sig_m[:, np.newaxis]
+        elif len(sig_m.shape) > 2:
+            print('FIRST INPUT ARGUMENT MUST BE A VECTOR OR A MATRIX')
         self.sig_m = sig_m
         self.nb_samples = self.sig_m.shape[0]
         self.nb_channels = self.sig_m.shape[1]

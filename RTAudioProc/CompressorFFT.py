@@ -15,8 +15,7 @@ class CompressorFFT:
                  thrsh_v=[-10, -10, -15, -20, -30, -40, -40, -50, -50],
                  ratio_v=[3, 3, 3, 3, 3, 3, 3, 3, 3],
                  knee_width=1, time_attack=0.005, time_release=0.05,
-
-                 bypass=False, verbose=False):
+                 wet_f = 1, bypass=False, verbose=False):
         # GENERAL
         self.bypass = bypass
         self.verbose = verbose
@@ -43,26 +42,32 @@ class CompressorFFT:
         self.kneeWidth = knee_width
         self.time_attack = time_attack
         self.time_release = time_release
+        self.wet_f = wet_f
         # SMOOTH GR IN TIME
         self.coefA_f = np.exp(-1 / (self.time_attack * self.samp_freq))
         self.coefR_f = np.exp(-1 / (self.time_release * self.samp_freq))
         self.gr_prev_m = np.zeros((self.nb_band, self.nb_channels))
         # SMOOTH GR IN FREQ
-        N = self.nb_buffsamp / 10.
+        # N = self.nb_buffsamp / 10.
+        N = 1
         self.win_v = np.hanning(N) / (N/2)
         # FOR PLOT
         self.mag_inp = np.zeros((self.nb_buffsamp2, self.nb_channels))
         self.mag_out = np.zeros((self.nb_buffsamp2, self.nb_channels))
         self.gr_plot = np.zeros((self.nb_buffsamp2, self.nb_channels))
         self.gr2_plot = np.zeros((self.nb_buffsamp2, self.nb_channels))
+        self.rms_band1 = np.zeros((self.nb_band, self.nb_channels))
+        self.rms_band2 = np.zeros((self.nb_band, self.nb_channels))
 
     def processfft(self, fft_inp):
         magdb_inp = u.mag2db(fft_inp)
+        mag_inp = np.abs(fft_inp)
         if not self.bypass:
             rms_band = np.zeros((self.nb_band, self.nb_channels))
             for band in range(self.nb_band):
                 mag_band = magdb_inp[self.mask[band]]
                 rms_band[band, :] = np.mean(mag_band, axis=0)
+            self.rms_band = rms_band
             # GAIN COMPUTER
             gc_inp = rms_band
             gc_out = np.zeros(gc_inp.shape)
@@ -100,7 +105,10 @@ class CompressorFFT:
             gain_redu = u.db2mag(-gr_m)
             gain_redu = u.min_phase_spectrum(gain_redu)
             # APPLY GAIN REDUCTION
+            gain_redu = gain_redu * self.wet_f + (1 - self.wet_f)
+            self.gr_plot = u.mag2db(gain_redu)
             fft_out = fft_inp * gain_redu
+            # fft_out = fft_inp * gain_redu * self.wet_f + fft_inp * (1-self.wet_f)
         else:
             fft_out = fft_inp
 

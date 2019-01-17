@@ -45,6 +45,7 @@ from .AudioCallback import *
 
 from .Compressor import *
 from .CompressorFFT import *
+from .CompressorFFT_HA import *
 
 from .Convolution import *
 from .ConvolutionIR import *
